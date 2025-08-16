@@ -1,8 +1,8 @@
 package dev.kaushik.library.dao.impl;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
@@ -64,6 +64,14 @@ public class MemberDAOImpl implements MemberDAO{
 
 	@Override
 	public boolean updateMember(Member member) throws DataAccessException {
+		List<Member> existingMembers = findMembers(Member.builder().memberID(member.getMemberID()).build());
+
+		if (existingMembers.isEmpty()) {
+			return false;
+		}
+
+		Member oldMember = existingMembers.get(0);
+
 		String sql = "UPDATE members SET name=:name, email=:email, phoneNumber=:phoneNumber,"
 				+ "gender=:gender, address=:address, updated_by=:updatedBy, updated_at=CURRENT_TIMESTAMP "
 				+ "WHERE memberID=:memberID";
@@ -78,14 +86,33 @@ public class MemberDAOImpl implements MemberDAO{
 				.addValue("memberID", member.getMemberID());
 
 		int rowsAffected = namedParameterJdbcTemplate.update(sql, params);
-		return rowsAffected > 0;
+		
+		if (rowsAffected > 0) {
+			logMemberChange(oldMember);
+			return true;
+		}
+		return false;
 	}
 
 	@Override
 	public boolean deleteMember(int memberId) throws DataAccessException {
-		String sql="DELETE From member WHERE memberID="+memberId;
-		int rowsAffected = namedParameterJdbcTemplate.update(sql,Collections.emptyMap());
-        return rowsAffected > 0;
+		List<Member> existingMembers = findMembers(Member.builder().memberID(memberId).build());
+
+		if (existingMembers.isEmpty()) {
+			return false;
+		}
+
+		Member oldMember = existingMembers.get(0);
+		
+		String sql="DELETE FROM members WHERE memberID=:memberId";
+		MapSqlParameterSource params=new MapSqlParameterSource("memberId",memberId);
+		int rowsAffected = namedParameterJdbcTemplate.update(sql,params);
+		
+		if (rowsAffected > 0) {
+			logMemberChange(oldMember);
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -94,9 +121,19 @@ public class MemberDAOImpl implements MemberDAO{
 			return 0;
 		}
 		List<Integer> memberIdList = Arrays.asList(memberIds);
+
+		List<Member> membersToLog = findMembers(Member.builder().build()).stream()
+			.filter(m -> memberIdList.contains(m.getMemberID()))
+			.collect(Collectors.toList());
+
 		String query = "DELETE FROM members WHERE memberID IN (:memberIds)";
 		MapSqlParameterSource params = new MapSqlParameterSource("memberIds", memberIdList);
-		return namedParameterJdbcTemplate.update(query, params);
+		int rowsAffected = namedParameterJdbcTemplate.update(query, params);
+
+		if (rowsAffected > 0) {
+			membersToLog.forEach(this::logMemberChange);
+		}
+		return rowsAffected;
 	}
 
 	@Override
@@ -104,9 +141,9 @@ public class MemberDAOImpl implements MemberDAO{
 	    StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM members WHERE 1=1");
 	    MapSqlParameterSource params = new MapSqlParameterSource();
 
-	    if (criteria != null) {
-	        if (criteria.getMemberID() != 0) {
-	            sqlBuilder.append(" AND memberID=memberID");
+		if (criteria != null) {
+			if (criteria.getMemberID() != null && criteria.getMemberID() != 0) {
+	            sqlBuilder.append(" AND memberID=:memberID");
 	            params.addValue("memberID", criteria.getMemberID());
 	        }
 	        if (criteria.getName() != null && !criteria.getName().trim().isEmpty()) {
@@ -131,5 +168,20 @@ public class MemberDAOImpl implements MemberDAO{
 	        }
 	    }
 	    return namedParameterJdbcTemplate.query(sqlBuilder.toString(), params, memberRowMapper);
+	}
+	
+	private void logMemberChange(Member member) throws DataAccessException {
+		String sql = "INSERT INTO members_log (MemberId,Name,Email,PhoneNumber,Gender,Address,LogDate) "
+				+ "VALUES (:memberId,:name,:email,:phoneNumber,:gender,:address,CURRENT_TIMESTAMP)";
+		
+		MapSqlParameterSource params = new MapSqlParameterSource()
+				.addValue("memberId", member.getMemberID())
+				.addValue("name", member.getName())
+				.addValue("email", member.getEmail())
+				.addValue("phoneNumber", member.getPhoneNumber())
+				.addValue("gender", String.valueOf(member.getGender().getCode()))
+				.addValue("address", member.getAddress());
+		
+		namedParameterJdbcTemplate.update(sql, params);
 	}
 }
