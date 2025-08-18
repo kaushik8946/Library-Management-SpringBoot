@@ -33,7 +33,7 @@ public class MemberServiceImpl implements MemberService {
 		}
 		try {
 			return memberDAO.addMember(member);
-		} catch (DataAccessException e) {
+		} catch (DataAccessException e) { 
 			throw new LibraryException("Failed to add member: " + e.getMessage(), e);
 		}
 	}

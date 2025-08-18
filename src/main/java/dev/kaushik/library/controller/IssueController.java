@@ -3,7 +3,6 @@ package dev.kaushik.library.controller;
 import dev.kaushik.library.model.IssueRecord;
 import dev.kaushik.library.model.Member;
 import dev.kaushik.library.service.IssueService;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,16 +23,14 @@ public class IssueController {
 	}
 
 	@PostMapping("/issueBook")
-	public ResponseEntity<Integer> issueBook(@RequestParam @Positive int bookId, @RequestParam @Positive int memberId,
-			@RequestParam @NotNull String issuedBy) {
-		Integer issueId = issueService.issueBook(bookId, memberId, issuedBy);
+	public ResponseEntity<Integer> issueBook(@RequestParam @Positive int bookId, @RequestParam @Positive int memberId) {
+		Integer issueId = issueService.issueBook(bookId, memberId, "ADMIN");
 		return new ResponseEntity<>(issueId, HttpStatus.CREATED);
 	}
 
-	@PutMapping("/returnBook")
-	public ResponseEntity<Integer> returnBook(@RequestParam @Positive int bookId,
-			@RequestParam @NotNull String returnedBy) {
-		Integer updatedCount = issueService.returnBook(bookId, returnedBy);
+	@PostMapping("/returnBook")
+	public ResponseEntity<Integer> returnBook(@RequestParam @Positive int bookId) {
+		Integer updatedCount = issueService.returnBook(bookId, "ADMIN");
 		return new ResponseEntity<>(updatedCount, HttpStatus.OK);
 	}
 

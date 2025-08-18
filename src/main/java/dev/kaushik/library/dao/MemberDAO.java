@@ -16,4 +16,6 @@ public interface MemberDAO {
     int deleteMembersInBatch(Integer... memberIds) throws DataAccessException;
 
     List<Member> findMembers(Member criteria) throws DataAccessException;
+    
+    List<Member> findMembersByIds(List<Integer> memberIds) throws DataAccessException;
 }

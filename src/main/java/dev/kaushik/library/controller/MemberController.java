@@ -8,9 +8,11 @@ import jakarta.validation.constraints.Positive;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
+@Validated
 @RestController
 @RequestMapping("/api/members")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -49,6 +51,11 @@ public class MemberController {
 
     @GetMapping("/viewMembers")
     public ResponseEntity<List<Member>> viewMembers(@RequestBody(required = false) Member criteria) {
+        List<Member> members = memberService.findMembers(criteria);
+        return new ResponseEntity<>(members, HttpStatus.OK);
+    }
+    @PostMapping("/viewMembers")
+    public ResponseEntity<List<Member>> viewMembersPost(@RequestBody(required = false) Member criteria) {
         List<Member> members = memberService.findMembers(criteria);
         return new ResponseEntity<>(members, HttpStatus.OK);
     }

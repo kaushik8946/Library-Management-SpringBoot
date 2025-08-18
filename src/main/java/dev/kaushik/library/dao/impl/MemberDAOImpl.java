@@ -1,6 +1,7 @@
 package dev.kaushik.library.dao.impl;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -168,6 +169,16 @@ public class MemberDAOImpl implements MemberDAO{
 	        }
 	    }
 	    return namedParameterJdbcTemplate.query(sqlBuilder.toString(), params, memberRowMapper);
+	}
+	
+	@Override
+	public List<Member> findMembersByIds(List<Integer> memberIds) throws DataAccessException {
+	    if (memberIds == null || memberIds.isEmpty()) {
+	        return Collections.emptyList();
+	    }
+	    String sql = "SELECT * FROM members WHERE memberID IN (:memberIds)";
+	    MapSqlParameterSource params = new MapSqlParameterSource("memberIds", memberIds);
+	    return namedParameterJdbcTemplate.query(sql, params, memberRowMapper);
 	}
 	
 	private void logMemberChange(Member member) throws DataAccessException {

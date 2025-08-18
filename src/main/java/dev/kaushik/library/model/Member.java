@@ -3,11 +3,7 @@ package dev.kaushik.library.model;
 import java.time.LocalDateTime;
 
 import dev.kaushik.library.model.enums.Gender;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +18,7 @@ public class Member {
 
 	@NotBlank(message = "Name cannot be blank")
 	@Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+	@Pattern(regexp = "^[A-Za-z ]+$", message = "Name must contain only alphabets and spaces")
 	private String name;
 
 	@NotBlank(message = "Email cannot be blank")
@@ -29,8 +26,10 @@ public class Member {
 	private String email;
 
 	@NotNull(message = "Phone number cannot be null")
-	@Digits(integer = 10, message = "Phone number must have exactly 10 digits", fraction = 0)
+	@Min(value = 1000000000L, message = "Phone number must have exactly 10 digits")
+	@Max(value = 9999999999L, message = "Phone number must have exactly 10 digits")
 	private long phoneNumber;
+
 
 	@NotNull(message = "Gender cannot be null")
 	private Gender gender;

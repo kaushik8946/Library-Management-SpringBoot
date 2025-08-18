@@ -1,6 +1,7 @@
 package dev.kaushik.library.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -8,12 +9,15 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import dev.kaushik.library.dao.*;
 import dev.kaushik.library.exception.LibraryException;
 import dev.kaushik.library.model.*;
 import dev.kaushik.library.model.enums.*;
 import dev.kaushik.library.service.IssueService;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 @Service
 public class IssueServiceImpl implements IssueService {
@@ -28,33 +32,41 @@ public class IssueServiceImpl implements IssueService {
 		this.issueRecordDAO = issueRecordDAO;
 	}
 
-	@Override
-	public Integer issueBook(int bookId, int memberId, String issuedBy) throws LibraryException {
+    @Override
+    @Transactional
+    public Integer issueBook(@Positive int bookId, @Positive int memberId, @NotNull String issuedBy)
+        throws LibraryException {
+        List<Book> books = bookDAO.findBooks(Book.builder().bookId(bookId).build());
+        if (books.isEmpty() || books.get(0).getAvailability() == BookAvailability.ISSUED) {
+            throw new LibraryException("Book with ID " + bookId + " is not available for issue");
+        }
 
-		List<Book> books = bookDAO.findBooks(Book.builder().bookId(bookId).build());
-		if (books.isEmpty() || books.get(0).getAvailability() == BookAvailability.ISSUED) {
-			throw new LibraryException("Book with ID " + bookId + " is not available for issue");
-		}
+        List<Member> members = memberDAO.findMembers(Member.builder().memberID(memberId).build());
+        if (members.isEmpty()) {
+            throw new LibraryException("Member with ID " + memberId + " not found.");
+        }
+        
+        if (issueRecordDAO.getActiveIssueRecordByBookId(bookId).isPresent()) {
+            throw new LibraryException("Book with ID " + bookId + " is already actively issued.");
+        }
 
-		List<Member> members = memberDAO.findMembers(Member.builder().memberID(memberId).build());
-		if (members.isEmpty()) {
-			throw new LibraryException("Member with ID " + memberId + " not found.");
-		}
+        try {
+            IssueRecord issueRecord = IssueRecord.builder()
+                .bookId(bookId)
+                .memberId(memberId)
+                .status(IssueStatus.ISSUED)
+                .issueDate(LocalDateTime.now())
+                .issuedBy(issuedBy)
+                .build();
+            Integer issueId = issueRecordDAO.addIssueRecord(issueRecord);
 
-		if (issueRecordDAO.getActiveIssueRecordByBookId(bookId).isPresent()) {
-			throw new LibraryException("Book with ID " + bookId + " is already actively issued.");
-		}
-
-		try {
-			IssueRecord issueRecord = IssueRecord.builder().bookId(bookId).memberId(memberId).status(IssueStatus.ISSUED)
-					.issueDate(LocalDateTime.now()).issuedBy(issuedBy).build();
-			Integer issueId = issueRecordDAO.addIssueRecord(issueRecord);
-			bookDAO.updateBookAvailabilityBatch(List.of(bookId));
-			return issueId;
-		} catch (DataAccessException e) {
-			throw new LibraryException("Failed to issue book: " + e.getMessage(), e);
-		}
-	}
+            bookDAO.updateBookAvailabilityBatch(Collections.singletonList(bookId));
+            
+            return issueId;
+        } catch (DataAccessException e) {
+            throw new LibraryException("Failed to issue book: " + e.getMessage(), e);
+        }
+    }
 
 	@Override
 	public Integer returnBook(int bookId, String returnedBy) throws LibraryException {
@@ -105,20 +117,20 @@ public class IssueServiceImpl implements IssueService {
 
 	@Override
 	public List<Member> getMembersWithActiveBooks() throws LibraryException {
-		try {
-			IssueRecord criteria = IssueRecord.builder().status(IssueStatus.ISSUED).build();
-			List<IssueRecord> issuedRecords = issueRecordDAO.getIssuedRecords(criteria);
+	    try {
+	        IssueRecord criteria = IssueRecord.builder().status(IssueStatus.ISSUED).build();
+	        List<IssueRecord> issuedRecords = issueRecordDAO.getIssuedRecords(criteria);
 
-			List<Integer> memberIds = issuedRecords.stream().map(IssueRecord::getMemberId).distinct()
-					.collect(Collectors.toList());
+	        List<Integer> memberIds = issuedRecords.stream()
+	                .map(IssueRecord::getMemberId)
+	                .distinct()
+	                .collect(Collectors.toList());
 
-			List<Member> allMembers = memberDAO.findMembers(null);
-
-			return allMembers.stream().filter(member -> memberIds.contains(member.getMemberID()))
-					.collect(Collectors.toList());
-		} catch (DataAccessException e) {
-			throw new LibraryException("Failed to retrieve members with active books: " + e.getMessage(), e);
-		}
+	        return memberDAO.findMembersByIds(memberIds);
+	        
+	    } catch (DataAccessException e) {
+	        throw new LibraryException("Failed to retrieve members with active books: " + e.getMessage(), e);
+	    }
 	}
 
 }

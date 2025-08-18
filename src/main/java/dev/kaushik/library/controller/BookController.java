@@ -46,8 +46,8 @@ public class BookController {
         Integer deletedCount = bookService.deleteBooksBatch(bookIds);
         return new ResponseEntity<>(deletedCount, HttpStatus.OK);
     }
-
-    @PostMapping("/updateBookAvailabilityBatch")
+    
+    @PostMapping("/updateBooksAvailabilityBatch")
     public ResponseEntity<Integer> updateBookAvailabilityBatch(@RequestBody @NotNull List<@NotNull @Positive Integer> bookIds) {
         Integer updatedCount = bookService.updateBookAvailabilityBatch(bookIds);
         return new ResponseEntity<>(updatedCount, HttpStatus.OK);
@@ -55,6 +55,12 @@ public class BookController {
 
     @GetMapping("/viewBooks")
     public ResponseEntity<List<Book>> viewBooks(@RequestBody(required = false) Book criteria) {
+        List<Book> books = bookService.findBooks(criteria);
+        return new ResponseEntity<>(books, HttpStatus.OK);
+    } 
+    
+    @PostMapping("/viewBooks")
+    public ResponseEntity<List<Book>> viewBooksPost(@RequestBody(required = false) Book criteria) {
         List<Book> books = bookService.findBooks(criteria);
         return new ResponseEntity<>(books, HttpStatus.OK);
     }

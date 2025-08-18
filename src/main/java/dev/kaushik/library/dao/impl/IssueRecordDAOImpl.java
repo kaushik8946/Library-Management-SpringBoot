@@ -98,29 +98,30 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
 
         namedParameterJdbcTemplate.update(sql, params);
     }
+
 	@Override
 	public List<IssueRecord> getIssuedRecords(IssueRecord criteria) throws DataAccessException {
 		StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM issue_records WHERE 1=1");
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        if (criteria != null) {
-            if (criteria.getIssueId() != 0) {
-                sqlBuilder.append(" AND issueId=:issueId");
-                params.addValue("issueId", criteria.getIssueId());
-            }
-            if (criteria.getBookId() != 0) {
-                sqlBuilder.append(" AND bookId=:bookId");
-                params.addValue("bookId", criteria.getBookId());
-            }
-            if (criteria.getMemberId() != 0) {
-                sqlBuilder.append(" AND memberId=:memberId");
-                params.addValue("memberId", criteria.getMemberId());
-            }
-            if (criteria.getStatus() != null) {
-                sqlBuilder.append(" AND status=:status");
-                params.addValue("status", criteria.getStatus().getCode());
-            }
-        }
-        return namedParameterJdbcTemplate.query(sqlBuilder.toString(), params, issueRecordRowMapper);
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		if (criteria != null) {
+			if (criteria.getIssueId() != null && criteria.getIssueId() != 0) {
+				sqlBuilder.append(" AND issueId=:issueId");
+				params.addValue("issueId", criteria.getIssueId());
+			}
+			if (criteria.getBookId() != null && criteria.getBookId() != 0) {
+				sqlBuilder.append(" AND bookId=:bookId");
+				params.addValue("bookId", criteria.getBookId());
+			}
+			if (criteria.getMemberId() != null && criteria.getMemberId() != 0) {
+				sqlBuilder.append(" AND memberId=:memberId");
+				params.addValue("memberId", criteria.getMemberId());
+			}
+			if (criteria.getStatus() != null) {
+				sqlBuilder.append(" AND status=:status");
+				params.addValue("status", criteria.getStatus().getCode());
+			}
+		}
+		return namedParameterJdbcTemplate.query(sqlBuilder.toString(), params, issueRecordRowMapper);
 	}
 
 	@Override

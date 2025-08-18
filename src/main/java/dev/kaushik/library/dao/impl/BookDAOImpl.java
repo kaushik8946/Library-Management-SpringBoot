@@ -51,7 +51,7 @@ public class BookDAOImpl implements BookDAO {
 	            .addValue("category", book.getCategory().getDisplayName())
 	            .addValue("status", book.getStatus().getCode())
 	            .addValue("availability", book.getAvailability().getCode())
-	            .addValue("createdBy", book.getCreatedBy());
+	            .addValue("createdBy", "ADMIN");
         KeyHolder keyHolder = new GeneratedKeyHolder();
         namedParameterJdbcTemplate.update(sql, params, keyHolder, new String[]{"bookId"});
         return keyHolder.getKey() != null ? keyHolder.getKey().intValue() : -1;
