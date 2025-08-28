@@ -16,6 +16,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
@@ -23,6 +24,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(exclude = {"createdAt","createdBy","updatedAt","updatedBy"})
+@ToString(exclude = {"createdAt","createdBy","updatedAt","updatedBy"})
 public class Member {
 	private Integer memberID;
 

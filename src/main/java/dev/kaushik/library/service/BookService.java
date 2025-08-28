@@ -20,4 +20,6 @@ public interface BookService {
     int deleteBooksBatch(@NotNull List<@NotNull @Positive Integer> bookIds);
 
     int updateBookAvailabilityBatch(@NotNull List<@NotNull @Positive Integer> bookIds);
+
+	int updateBookStatusBatch(@NotNull List<@NotNull @Positive Integer> bookIds);
 }

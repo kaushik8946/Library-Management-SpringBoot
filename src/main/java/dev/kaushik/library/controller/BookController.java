@@ -50,6 +50,13 @@ public class BookController {
 		return new ResponseEntity<>(deletedCount, HttpStatus.OK);
 	}
 
+	@PostMapping("/updateBooksStatusBatch")
+	public ResponseEntity<Integer> updateBookStatusBatch(
+			@RequestBody @NotNull List<@NotNull @Positive Integer> bookIds) {
+		Integer updatedCount = bookService.updateBookStatusBatch(bookIds);
+		return new ResponseEntity<>(updatedCount, HttpStatus.OK);
+	}
+	
 	@PostMapping("/updateBooksAvailabilityBatch")
 	public ResponseEntity<Integer> updateBookAvailabilityBatch(
 			@RequestBody @NotNull List<@NotNull @Positive Integer> bookIds) {

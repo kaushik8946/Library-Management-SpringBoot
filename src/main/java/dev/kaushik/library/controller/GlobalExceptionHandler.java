@@ -12,13 +12,11 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(LibraryException.class)
 	public ResponseEntity<String> handleLibraryException(LibraryException ex) {
-		ex.printStackTrace();
 		return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<String> handleValidationExceptions(MethodArgumentNotValidException ex) {
-		ex.printStackTrace();
 		StringBuilder errors = new StringBuilder();
 		ex.getBindingResult().getAllErrors().forEach(error -> {
 			errors.append(error.getDefaultMessage()).append("; "); 

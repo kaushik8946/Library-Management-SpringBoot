@@ -33,11 +33,11 @@ public class MemberServiceImpl implements MemberService {
 		if (member.getMemberID() != null) {
 			throw new LibraryException("Member ID can not be specified, it will be auto generated");
 		}
-		Stream<Member> allMembers = memberDAO.findMembers(null).stream();
-		if (allMembers.filter(m -> m.getEmail().equals(member.getEmail())).count() != 0) {
+		List<Member> allMembers = memberDAO.findMembers(null);
+		if (allMembers.stream().filter(m -> m.getEmail().equals(member.getEmail())).count() != 0) {
 			throw new LibraryException("Member already exists with Email: " + member.getEmail());
 		}
-		if (allMembers.filter(m -> m.getPhoneNumber() == member.getPhoneNumber()).count() != 0) {
+		if (allMembers.stream().filter(m -> m.getPhoneNumber() == member.getPhoneNumber()).count() != 0) {
 			throw new LibraryException("Member already exists with Phone Number: " + member.getPhoneNumber());
 		}
 		return memberDAO.addMember(member);
@@ -49,22 +49,26 @@ public class MemberServiceImpl implements MemberService {
 		if (member.getMemberID() == null || member.getMemberID() <= 0) {
 			throw new LibraryException("Member ID must be provided and be a positive number for update.");
 		}
-		Stream<Member> allMembers = memberDAO.findMembers(null).stream();
-		if (allMembers.filter(m -> m.getEmail().equals(member.getEmail())).count() != 0) {
-			throw new LibraryException("Member already exists with Email: " + member.getEmail());
-		}
-		if (allMembers.filter(m -> m.getPhoneNumber() == member.getPhoneNumber()).count() != 0) {
-			throw new LibraryException("Member already exists with Phone Number: " + member.getPhoneNumber());
-		}
-		Member existingMember = allMembers.filter(m -> m.getMemberID() == member.getMemberID()).findFirst()
+		List<Member> allMembers = memberDAO.findMembers(null);
+		Member existingMember = allMembers.stream().filter(m -> m.getMemberID() == member.getMemberID()).findFirst()
 				.orElse(null);
 		if (existingMember == null) {
 			throw new LibraryException("Member not found with Member ID: " + member.getMemberID());
 		}
-
+		System.out.println(existingMember);
+		System.out.println(member);
 		if (existingMember.equals(member)) {
 			throw new LibraryException("Same details were found, no changes made");
 		}
+		if (allMembers.stream().filter(m -> m.getMemberID() != member.getMemberID())
+				.filter(m -> m.getEmail().equals(member.getEmail())).count() != 0) {
+			throw new LibraryException("Member already exists with Email: " + member.getEmail());
+		}
+		if (allMembers.stream().filter(m -> m.getMemberID() != member.getMemberID())
+				.filter(m -> m.getPhoneNumber() == member.getPhoneNumber()).count() != 0) {
+			throw new LibraryException("Member already exists with Phone Number: " + member.getPhoneNumber());
+		}
+
 		return memberDAO.updateMember(member);
 	}
 
@@ -92,7 +96,7 @@ public class MemberServiceImpl implements MemberService {
 		if (matched.size() > 0) {
 			throw new LibraryException("can't delete, one or more members have issued books");
 		}
-		
+
 		Integer[] memberIdArray = memberIds.toArray(new Integer[0]);
 		return memberDAO.deleteMembersInBatch(memberIdArray);
 	}

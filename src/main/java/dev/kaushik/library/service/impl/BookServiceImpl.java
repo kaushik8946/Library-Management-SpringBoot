@@ -10,7 +10,6 @@ import dev.kaushik.library.dao.BookDAO;
 import dev.kaushik.library.exception.LibraryException;
 import dev.kaushik.library.model.Book;
 import dev.kaushik.library.model.IssueRecord;
-import dev.kaushik.library.model.enums.BookStatus;
 import dev.kaushik.library.model.enums.IssueStatus;
 import dev.kaushik.library.service.BookService;
 import dev.kaushik.library.service.IssueService;
@@ -55,15 +54,17 @@ public class BookServiceImpl implements BookService {
 		}
 		BookValidator.validate(book);
 		List<Book> allBooks = bookDAO.findBooks(null);
-		if (allBooks.stream().filter(b -> b.getTitle().equalsIgnoreCase(book.getTitle())).count() != 0) {
-			throw new LibraryException("Book already Exists with title: " + book.getTitle());
-		}
+
 		Book existingBook = allBooks.stream().filter(b -> b.getBookId() == book.getBookId()).findFirst().orElse(null);
 		if (existingBook == null) {
 			throw new LibraryException("no Book Exists with Id: " + book.getBookId());
 		}
 		if (existingBook.equals(book)) {
 			throw new LibraryException("No changes were entered, same details found");
+		}
+		if (allBooks.stream().filter(b -> b.getBookId() != book.getBookId())
+				.filter(b -> b.getTitle().equalsIgnoreCase(book.getTitle())).count() != 0) {
+			throw new LibraryException("Book already Exists with title: " + book.getTitle());
 		}
 		return bookDAO.updateBook(book);
 	}
@@ -95,5 +96,16 @@ public class BookServiceImpl implements BookService {
 			throw new LibraryException("following Book Id's does not exist " + missingIds);
 		}
 		return bookDAO.updateBookAvailabilityBatch(bookIds);
+	}
+
+	@Override
+	public int updateBookStatusBatch(@NotNull List<@NotNull @Positive Integer> bookIds) throws LibraryException {
+		List<Book> allBooks = bookDAO.findBooks(null);
+		List<Integer> allBookIds = allBooks.stream().map(b -> b.getBookId()).toList();
+		List<Integer> missingIds = bookIds.stream().filter(id -> !allBookIds.contains(id)).toList();
+		if (missingIds.size() > 0) {
+			throw new LibraryException("following Book Id's does not exist " + missingIds);
+		}
+		return bookDAO.updateBookStatusBatch(bookIds);
 	}
 }

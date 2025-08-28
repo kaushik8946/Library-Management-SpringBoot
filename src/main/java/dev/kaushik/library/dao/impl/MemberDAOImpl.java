@@ -16,6 +16,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import dev.kaushik.library.dao.MemberDAO;
+import dev.kaushik.library.exception.LibraryException;
 import dev.kaushik.library.model.Member;
 import dev.kaushik.library.model.enums.Gender;
 
@@ -78,9 +79,9 @@ public class MemberDAOImpl implements MemberDAO{
 		if (existingMembers.isEmpty()) {
 			return false;
 		}
-
+		
 		Member oldMember = existingMembers.get(0);
-
+		
 		String sql = "UPDATE members SET name=:name, email=:email, phoneNumber=:phoneNumber,"
 				+ "gender=:gender, address=:address, updated_by=:updatedBy, updated_at=CURRENT_TIMESTAMP "
 				+ "WHERE memberID=:memberID";

@@ -169,6 +169,30 @@ public class BookDAOImpl implements BookDAO {
 		return rowsAffected;
 	}
 	
+	@Override
+	public int updateBookStatusBatch(List<Integer> bookIds) {
+		if (bookIds == null || bookIds.size() == 0) {
+            return 0;
+        }
+		List<Book> booksToLog = findBooks(Book.builder().build());
+		booksToLog = booksToLog.stream() 
+				.filter(book -> bookIds.contains(book.getBookId()))
+				.collect(Collectors.toList());
+        String sql = "UPDATE books " +
+                "SET status = " +
+                "CASE status " +
+                "WHEN '" + BookStatus.ACTIVE.getCode() + "' THEN '" + BookStatus.INACTIVE.getCode() + "' " +
+                "WHEN '" + BookStatus.INACTIVE.getCode() + "' THEN '" + BookStatus.ACTIVE.getCode() + "' " +
+                "END " +
+                "WHERE bookId IN (:bookIds)";
+        MapSqlParameterSource params = new MapSqlParameterSource("bookIds", bookIds);
+        int rowsAffected= namedParameterJdbcTemplate.update(sql, params);
+        if (rowsAffected > 0) {
+			booksToLog.forEach(book -> logBookChange(book));
+		}
+		return rowsAffected;
+	}
+	
 	private void logBookChange(Book oldBook) {
 	    String sql = "INSERT INTO books_log (BookId,Title,Author,Category,Status,Availability," +
 	                 "original_created_at,original_created_by,original_updated_at,original_updated_by,LogDate) " +
