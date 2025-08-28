@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -39,7 +38,7 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
             .build();
 
 	@Override
-	public int addIssueRecord(IssueRecord issueRecord) throws DataAccessException {
+	public int addIssueRecord(IssueRecord issueRecord) {
 		String sql = "INSERT INTO issue_records (bookId,memberId,status,issueDate,issued_by) "
 				+ "VALUES (:bookId,:memberId,:status,:issueDate,:issuedBy)";
 
@@ -57,7 +56,7 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
 	}
 
 	@Override
-	public boolean markAsReturned(IssueRecord issueRecord) throws DataAccessException {
+	public boolean markAsReturned(IssueRecord issueRecord) {
 	    Optional<IssueRecord> optionalOldRecord = getActiveIssueRecordByBookId(issueRecord.getBookId());
 
 	    if (optionalOldRecord.isEmpty()) {
@@ -82,7 +81,7 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
 	    return false;
 	}
 	
-	private void logIssueRecordChange(IssueRecord issueRecord) throws DataAccessException {
+	private void logIssueRecordChange(IssueRecord issueRecord) {
         String sql = "INSERT INTO issue_records_log (IssueId,BookId,MemberId,Status,IssueDate,issued_by,ReturnDate,returned_by,LogDate) " +
                      "VALUES (:issueId,:bookId,:memberId,:status,:issueDate,:issuedBy,:returnDate,:returnedBy,CURRENT_TIMESTAMP)";
 
@@ -100,7 +99,7 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
     }
 
 	@Override
-	public List<IssueRecord> getIssuedRecords(IssueRecord criteria) throws DataAccessException {
+	public List<IssueRecord> getIssuedRecords(IssueRecord criteria) {
 		StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM issue_records WHERE 1=1");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		if (criteria != null) {
@@ -125,7 +124,7 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
 	}
 
 	@Override
-	public Optional<IssueRecord> getActiveIssueRecordByBookId(int bookId) throws DataAccessException {
+	public Optional<IssueRecord> getActiveIssueRecordByBookId(int bookId)  {
 		String sql = "SELECT * FROM issue_records WHERE bookId = :bookId AND status = :status";
 
         MapSqlParameterSource params = new MapSqlParameterSource()

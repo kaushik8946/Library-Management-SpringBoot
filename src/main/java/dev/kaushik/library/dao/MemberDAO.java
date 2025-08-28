@@ -2,20 +2,18 @@ package dev.kaushik.library.dao;
 
 import java.util.List;
 
-import org.springframework.dao.DataAccessException;
-
 import dev.kaushik.library.model.Member;
 
 public interface MemberDAO {
-    int addMember(Member member) throws DataAccessException;
+	int addMember(Member member);
 
-    boolean updateMember(Member member) throws DataAccessException;
+	boolean updateMember(Member member);
 
-    boolean deleteMember(int memberId) throws DataAccessException;
+	boolean deleteMember(int memberId);
 
-    int deleteMembersInBatch(Integer... memberIds) throws DataAccessException;
+	int deleteMembersInBatch(Integer... memberIds);
 
-    List<Member> findMembers(Member criteria) throws DataAccessException;
-    
-    List<Member> findMembersByIds(List<Integer> memberIds) throws DataAccessException;
+	List<Member> findMembers(Member criteria);
+
+	List<Member> findMembersByIds(List<Integer> memberIds);
 }

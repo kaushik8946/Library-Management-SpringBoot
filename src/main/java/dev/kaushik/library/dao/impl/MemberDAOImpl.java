@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -30,23 +29,32 @@ public class MemberDAOImpl implements MemberDAO{
         this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
     }
 
-	
-	private final RowMapper<Member> memberRowMapper= (rs,rowNum) -> 
-	    Member.builder()
-	        .memberID(rs.getInt("memberID"))
-	        .name(rs.getString("name"))
-	        .email(rs.getString("email"))
-	        .phoneNumber(rs.getLong("phoneNumber"))
-	        .gender(Gender.fromCode(rs.getString("gender").charAt(0)))
-	        .address(rs.getString("address"))
-	        .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null)
-	        .createdBy(rs.getString("created_by"))
-	        .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null)
-	        .updatedBy(rs.getString("updated_by"))
-	        .build();
+    private final RowMapper<Member> memberRowMapper = (rs, rowNum) -> {
+        Member member = new Member();
+        member.setMemberID(rs.getInt("memberID"));
+        member.setName(rs.getString("name"));
+        member.setEmail(rs.getString("email"));
+        member.setPhoneNumber(rs.getLong("phoneNumber"));
+        String genderCode = rs.getString("gender");
+        if (genderCode != null && !genderCode.isEmpty()) {
+            member.setGender(Gender.fromCode(genderCode.charAt(0)));
+        }
+        member.setAddress(rs.getString("address"));
+        if (rs.getTimestamp("created_at") != null) {
+            member.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+        }
+        member.setCreatedBy(rs.getString("created_by"));
+        if (rs.getTimestamp("updated_at") != null) {
+            member.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+        }
+        member.setUpdatedBy(rs.getString("updated_by"));
+        return member;
+    };
+
+
 	
 	@Override
-	public int addMember(Member member) throws DataAccessException {
+	public int addMember(Member member) {
 		String sql = "INSERT INTO members (name,email,phoneNumber,gender,address,created_by) "
 				+ "VALUES (:name,:email,:phoneNumber,:gender,:address,:createdBy)";
 		
@@ -64,7 +72,7 @@ public class MemberDAOImpl implements MemberDAO{
 	}
 
 	@Override
-	public boolean updateMember(Member member) throws DataAccessException {
+	public boolean updateMember(Member member) {
 		List<Member> existingMembers = findMembers(Member.builder().memberID(member.getMemberID()).build());
 
 		if (existingMembers.isEmpty()) {
@@ -96,7 +104,7 @@ public class MemberDAOImpl implements MemberDAO{
 	}
 
 	@Override
-	public boolean deleteMember(int memberId) throws DataAccessException {
+	public boolean deleteMember(int memberId) {
 		List<Member> existingMembers = findMembers(Member.builder().memberID(memberId).build());
 
 		if (existingMembers.isEmpty()) {
@@ -117,7 +125,7 @@ public class MemberDAOImpl implements MemberDAO{
 	}
 
 	@Override
-	public int deleteMembersInBatch(Integer... memberIds) throws DataAccessException {
+	public int deleteMembersInBatch(Integer... memberIds) {
 		if (memberIds == null || memberIds.length == 0) {
 			return 0;
 		}
@@ -138,12 +146,12 @@ public class MemberDAOImpl implements MemberDAO{
 	}
 
 	@Override
-	public List<Member> findMembers(Member criteria) throws DataAccessException {
+	public List<Member> findMembers(Member criteria) {
 	    StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM members WHERE 1=1");
 	    MapSqlParameterSource params = new MapSqlParameterSource();
 
 		if (criteria != null) {
-			if (criteria.getMemberID() != null && criteria.getMemberID() != 0) {
+			if (criteria.getMemberID() != null && criteria.getMemberID() > 0) {
 	            sqlBuilder.append(" AND memberID=:memberID");
 	            params.addValue("memberID", criteria.getMemberID());
 	        }
@@ -172,7 +180,7 @@ public class MemberDAOImpl implements MemberDAO{
 	}
 	
 	@Override
-	public List<Member> findMembersByIds(List<Integer> memberIds) throws DataAccessException {
+	public List<Member> findMembersByIds(List<Integer> memberIds) {
 	    if (memberIds == null || memberIds.isEmpty()) {
 	        return Collections.emptyList();
 	    }
@@ -181,7 +189,7 @@ public class MemberDAOImpl implements MemberDAO{
 	    return namedParameterJdbcTemplate.query(sql, params, memberRowMapper);
 	}
 	
-	private void logMemberChange(Member member) throws DataAccessException {
+	private void logMemberChange(Member member) {
 		String sql = "INSERT INTO members_log (MemberId,Name,Email,PhoneNumber,Gender,Address,LogDate) "
 				+ "VALUES (:memberId,:name,:email,:phoneNumber,:gender,:address,CURRENT_TIMESTAMP)";
 		

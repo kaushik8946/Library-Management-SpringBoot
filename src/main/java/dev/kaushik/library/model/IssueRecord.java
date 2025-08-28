@@ -26,14 +26,11 @@ public class IssueRecord {
 	@PastOrPresent(message = "Issue date must be past or present, not future")
 	private LocalDateTime issueDate;
 	
-	@NotNull(message = "Issuer name can not be null")
 	@NotBlank(message = "Issuer name can not be blank")
 	private String issuedBy;
 	
 	@PastOrPresent(message = "return date must be past or present, not future")
 	private LocalDateTime returnDate;
 	
-	@NotNull(message = "'returned by' name can not be null")
-	@NotBlank(message = "'returned by' name can not be blank")
 	private String returnedBy;
 }

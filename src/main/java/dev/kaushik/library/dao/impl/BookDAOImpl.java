@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -27,22 +26,28 @@ public class BookDAOImpl implements BookDAO {
 		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
 	}
 	
-	private final RowMapper<Book> bookRowMapper = (rs, rowNum) ->
-	    Book.builder()
-	        .bookId(rs.getInt("bookId"))
-	        .title(rs.getString("title"))
-	        .author(rs.getString("author"))
-	        .category(BookCategory.fromDisplayName(rs.getString("category")))
-	        .status(BookStatus.fromCode(rs.getString("status")))
-	        .availability(BookAvailability.fromCode(rs.getString("availability")))
-	        .createdAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null)
-	        .createdBy(rs.getString("created_by"))
-	        .updatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null)
-	        .updatedBy(rs.getString("updated_by"))
-	        .build();
+	private final RowMapper<Book> bookRowMapper = (rs, rowNum) -> {
+	    Book book = new Book();
+	    book.setBookId(rs.getInt("bookId"));
+	    book.setTitle(rs.getString("title"));
+	    book.setAuthor(rs.getString("author"));
+	    book.setCategory(BookCategory.fromDisplayName(rs.getString("category")));
+	    book.setStatus(BookStatus.fromCode(rs.getString("status")));
+	    book.setAvailability(BookAvailability.fromCode(rs.getString("availability")));
+	    if (rs.getTimestamp("created_at") != null) {
+	        book.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+	    }
+	    book.setCreatedBy(rs.getString("created_by"));
+	    if (rs.getTimestamp("updated_at") != null) {
+	        book.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+	    }
+	    book.setUpdatedBy(rs.getString("updated_by"));
+	    return book;
+	};
+
 
 	@Override
-	public int addBook(Book book) throws DataAccessException {
+	public int addBook(Book book) {
 		String sql = "INSERT INTO books (title,author,category,status,availability,created_by) " +
                 "VALUES (:title,:author,:category,:status,:availability,:createdBy)";
 		MapSqlParameterSource params = new MapSqlParameterSource()
@@ -59,7 +64,7 @@ public class BookDAOImpl implements BookDAO {
 
 	@Override
 	@Transactional
-	public boolean updateBook(Book book) throws DataAccessException {
+	public boolean updateBook(Book book) {
 		List<Book> existingBooks = findBooks(Book.builder().bookId(book.getBookId()).build());
 	    
 	    if (existingBooks.isEmpty()) {
@@ -77,7 +82,7 @@ public class BookDAOImpl implements BookDAO {
 	            .addValue("category", book.getCategory().getDisplayName())
 	            .addValue("status", book.getStatus().getCode())
 	            .addValue("availability", book.getAvailability().getCode())
-	            .addValue("updatedBy", book.getUpdatedBy())
+	            .addValue("updatedBy", "ADMIN")
 	            .addValue("bookId", book.getBookId());
         int rowsAffected = namedParameterJdbcTemplate.update(sql, params);
         if(rowsAffected>0) {
@@ -88,7 +93,7 @@ public class BookDAOImpl implements BookDAO {
 	}
 
 	@Override
-	public int deleteBooksInBatch(Integer... bookIds) throws DataAccessException {
+	public int deleteBooksInBatch(Integer... bookIds) {
 		if (bookIds == null || bookIds.length == 0) {
 			return 0;
 		}
@@ -108,7 +113,7 @@ public class BookDAOImpl implements BookDAO {
 	}
 
 	@Override
-	public List<Book> findBooks(Book criteria) throws DataAccessException {
+	public List<Book> findBooks(Book criteria) {
 	    StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM books WHERE 1=1");
 	    MapSqlParameterSource params= new MapSqlParameterSource();
 	    if (criteria != null) {
@@ -116,11 +121,11 @@ public class BookDAOImpl implements BookDAO {
 	            sqlBuilder.append(" AND bookId = :bookId");
 	            params.addValue("bookId", criteria.getBookId());
 	        }
-	        if (criteria.getTitle() != null && !criteria.getTitle().trim().isEmpty()) {
+	        if (criteria.getTitle() != null && !criteria.getTitle().isBlank()) {
 	            sqlBuilder.append(" AND title LIKE :title");
 	            params.addValue("title", "%" + criteria.getTitle().trim() + "%");
 	        }
-	        if (criteria.getAuthor() != null && !criteria.getAuthor().trim().isEmpty()) {
+	        if (criteria.getAuthor() != null && !criteria.getAuthor().isBlank()) {
 	            sqlBuilder.append(" AND author LIKE :author");
 	            params.addValue("author", "%" + criteria.getAuthor().trim() + "%");
 	        }
@@ -141,7 +146,7 @@ public class BookDAOImpl implements BookDAO {
 	    return namedParameterJdbcTemplate.query(sqlBuilder.toString(), params, bookRowMapper);
 	}
 	@Override
-	public int updateBookAvailabilityBatch(List<Integer> bookIds) throws DataAccessException {
+	public int updateBookAvailabilityBatch(List<Integer> bookIds) {
 		if (bookIds == null || bookIds.size() == 0) {
             return 0;
         }
@@ -164,7 +169,7 @@ public class BookDAOImpl implements BookDAO {
 		return rowsAffected;
 	}
 	
-	private void logBookChange(Book oldBook) throws DataAccessException {
+	private void logBookChange(Book oldBook) {
 	    String sql = "INSERT INTO books_log (BookId,Title,Author,Category,Status,Availability," +
 	                 "original_created_at,original_created_by,original_updated_at,original_updated_by,LogDate) " +
 	                 "VALUES (:bookId,:title,:author,:category,:status,:availability, " +
@@ -184,4 +189,5 @@ public class BookDAOImpl implements BookDAO {
 
 	    namedParameterJdbcTemplate.update(sql, params);
 	}
+	
 }
