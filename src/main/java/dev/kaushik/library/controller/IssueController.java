@@ -3,7 +3,6 @@ package dev.kaushik.library.controller;
 import dev.kaushik.library.model.IssueRecord;
 import dev.kaushik.library.model.Member;
 import dev.kaushik.library.service.IssueService;
-import jakarta.validation.constraints.Positive;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,14 +22,14 @@ public class IssueController {
 	}
 
 	@PostMapping("/issueBook")
-	public ResponseEntity<Integer> issueBook(@RequestParam @Positive int bookId, @RequestParam @Positive int memberId) {
+	public ResponseEntity<Integer> issueBook(@RequestParam int bookId, @RequestParam int memberId) {
 		Integer issueId = issueService.issueBook(bookId, memberId, "ADMIN");
 		return new ResponseEntity<>(issueId, HttpStatus.CREATED);
 	}
 
 	@PostMapping("/returnBook")
-	public ResponseEntity<Integer> returnBook(@RequestParam @Positive int bookId) {
-		Integer updatedCount = issueService.returnBook(bookId, "ADMIN");
+	public ResponseEntity<Boolean> returnBook(@RequestParam int bookId) {
+		Boolean updatedCount = issueService.returnBook(bookId, "ADMIN");
 		return new ResponseEntity<>(updatedCount, HttpStatus.OK);
 	}
 

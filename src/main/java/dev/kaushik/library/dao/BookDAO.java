@@ -14,7 +14,5 @@ public interface BookDAO {
 
     List<Book> findBooks(Book criteria);
     
-    int updateBookAvailabilityBatch(List<Integer> bookIds);
-
 	int updateBookStatusBatch(List<Integer> bookIds);
 } 

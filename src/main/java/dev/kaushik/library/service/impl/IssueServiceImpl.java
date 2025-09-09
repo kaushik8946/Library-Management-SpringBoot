@@ -1,9 +1,7 @@
 package dev.kaushik.library.service.impl;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +19,6 @@ import dev.kaushik.library.model.enums.BookStatus;
 import dev.kaushik.library.model.enums.IssueStatus;
 import dev.kaushik.library.service.IssueService;
 import dev.kaushik.library.validator.IssueValidator;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 
 @Service
 public class IssueServiceImpl implements IssueService {
@@ -38,22 +34,35 @@ public class IssueServiceImpl implements IssueService {
 	}
 
 	@Override
-	public Integer issueBook(@Positive int bookId, @Positive int memberId, @NotBlank String issuedBy) {
-		List<Book> books = bookDAO.findBooks(Book.builder().bookId(bookId).build());
+	public Integer issueBook(int bookId, int memberId, String issuedBy) {
+		if (bookId <= 0) {
+			throw new LibraryException("book Id should only be positive");
+		}
+		if (memberId <= 0) {
+			throw new LibraryException("member Id should only be positive");
+		}
+		if (issuedBy == null || issuedBy.isBlank()) {
+			throw new LibraryException("Issuer name cannot be null");
+		}
+		Book criteria = new Book();
+		criteria.setBookId(bookId); 
+		List<Book> books = bookDAO.findBooks(criteria);
 		if (books.isEmpty() || books.get(0).getAvailability() == BookAvailability.ISSUED) {
 			throw new LibraryException("Book with ID " + bookId + " is not available for issue");
 		}
 		if (books.get(0).getStatus() == BookStatus.INACTIVE) {
 			throw new LibraryException("Book with ID " + bookId + " is Inactive");
 		}
-		List<Member> members = memberDAO.findMembers(Member.builder().memberID(memberId).build());
+		Member memberCriteria=new Member();
+		memberCriteria.setMemberID(memberId);
+		List<Member> members = memberDAO.findMembers(memberCriteria);
 		if (members.isEmpty()) {
-			throw new LibraryException("Member with ID " + memberId + " not found.");
+			throw new LibraryException("Member with ID " + memberId + " not found");
 		}
         
-        if (issueRecordDAO.getActiveIssueRecordByBookId(bookId).isPresent()) {
-            throw new LibraryException("Book with ID " + bookId + " is already issued.");
-        }
+		if (issueRecordDAO.getActiveIssueRecordByBookId(bookId) != null) {
+			throw new LibraryException("Book with ID " + bookId + " is already issued");
+		}
 
         IssueRecord issueRecord = new IssueRecord();
 		issueRecord.setBookId(bookId);
@@ -65,25 +74,27 @@ public class IssueServiceImpl implements IssueService {
         IssueValidator.validate(issueRecord);
         Integer issueId = issueRecordDAO.addIssueRecord(issueRecord);
 
-        bookDAO.updateBookAvailabilityBatch(Collections.singletonList(bookId));
-        
         return issueId;
     }
 
 	@Override
-	public Integer returnBook(@Positive int bookId, @NotBlank String returnedBy) {
-		Optional<IssueRecord> optionalRecord = issueRecordDAO.getActiveIssueRecordByBookId(bookId);
-		if (optionalRecord.isEmpty()) {
+	public boolean returnBook(int bookId, String returnedBy) {
+		if (bookId <= 0) {
+			throw new LibraryException("book Id should only be positive");
+		}
+		if (returnedBy == null || returnedBy.isBlank()) {
+			throw new LibraryException("Returner name cannot be null");
+		}
+		IssueRecord issueRecordToUpdate = issueRecordDAO.getActiveIssueRecordByBookId(bookId);
+		if (issueRecordToUpdate == null) {
 			throw new LibraryException("No active issue record found for Book ID: " + bookId);
 		}
 
-		IssueRecord issueRecordToUpdate = optionalRecord.get();
 		issueRecordToUpdate.setReturnDate(LocalDateTime.now());
 		issueRecordToUpdate.setReturnedBy(returnedBy);
 		issueRecordToUpdate.setStatus(IssueStatus.RETURNED);
 		IssueValidator.validate(issueRecordToUpdate);
-		issueRecordDAO.markAsReturned(issueRecordToUpdate);
-		return bookDAO.updateBookAvailabilityBatch(List.of(bookId));
+		return issueRecordDAO.markAsReturned(issueRecordToUpdate);
 	}
 
 	@Override
@@ -106,7 +117,8 @@ public class IssueServiceImpl implements IssueService {
 
 	@Override
 	public List<Member> getMembersWithActiveBooks() throws LibraryException {
-        IssueRecord criteria = IssueRecord.builder().status(IssueStatus.ISSUED).build();
+		IssueRecord criteria= new IssueRecord();
+		criteria.setStatus(IssueStatus.ISSUED);
         List<IssueRecord> issuedRecords = issueRecordDAO.getIssuedRecords(criteria);
 
         List<Integer> memberIds = issuedRecords.stream()

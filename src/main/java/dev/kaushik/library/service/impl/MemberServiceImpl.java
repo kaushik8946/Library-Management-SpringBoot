@@ -1,7 +1,6 @@
 package dev.kaushik.library.service.impl;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,9 +11,6 @@ import dev.kaushik.library.model.Member;
 import dev.kaushik.library.service.IssueService;
 import dev.kaushik.library.service.MemberService;
 import dev.kaushik.library.validator.MemberValidator;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
 @Service
 public class MemberServiceImpl implements MemberService {
@@ -28,7 +24,7 @@ public class MemberServiceImpl implements MemberService {
 	}
 
 	@Override
-	public Integer addMember(@Valid @NotNull Member member) {
+	public Integer addMember(Member member) {
 		MemberValidator.validate(member);
 		if (member.getMemberID() != null) {
 			throw new LibraryException("Member ID can not be specified, it will be auto generated");
@@ -44,7 +40,7 @@ public class MemberServiceImpl implements MemberService {
 	}
 
 	@Override
-	public boolean updateMember(@Valid @NotNull Member member) {
+	public boolean updateMember(Member member) {
 		MemberValidator.validate(member);
 		if (member.getMemberID() == null || member.getMemberID() <= 0) {
 			throw new LibraryException("Member ID must be provided and be a positive number for update.");
@@ -55,8 +51,7 @@ public class MemberServiceImpl implements MemberService {
 		if (existingMember == null) {
 			throw new LibraryException("Member not found with Member ID: " + member.getMemberID());
 		}
-		System.out.println(existingMember);
-		System.out.println(member);
+
 		if (existingMember.equals(member)) {
 			throw new LibraryException("Same details were found, no changes made");
 		}
@@ -73,9 +68,12 @@ public class MemberServiceImpl implements MemberService {
 	}
 
 	@Override
-	public boolean deleteMember(@NotNull @Positive Integer memberId) {
-		Member existingMember = memberDAO.findMembers(Member.builder().memberID(memberId).build()).stream().findFirst()
-				.orElse(null);
+	public boolean deleteMember(Integer memberId) {
+		if (memberId == null || memberId <= 0) {
+			throw new LibraryException("Member id cant be null or negative or zero");
+		}
+		Member existingMember = memberDAO.findMembers(null).stream().filter(m -> m.getMemberID() == memberId)
+				.findFirst().orElse(null);
 		if (existingMember == null) {
 			throw new LibraryException("Member not found with Member Id: " + memberId);
 		}
@@ -83,18 +81,26 @@ public class MemberServiceImpl implements MemberService {
 		List<Member> matched = membersWithActiveIssues.stream().filter(member -> member.getMemberID() == memberId)
 				.toList();
 		if (matched.size() > 0) {
-			throw new LibraryException("cant delete member, as member has a issued book");
+			throw new LibraryException("cant delete member");
 		}
 		return memberDAO.deleteMember(memberId);
 	}
 
 	@Override
-	public int deleteMembers(@NotNull List<@NotNull @Positive Integer> memberIds) {
+	public int deleteMembers(List<Integer> memberIds) {
+		if (memberIds == null) {
+			throw new LibraryException("member ID's cant be null");
+		}
+		memberIds.forEach(memberId -> {
+			if (memberId == null || memberId <= 0) {
+				throw new LibraryException("Member id cant be null or negative or zero");
+			}
+		});
 		List<Member> membersWithActiveIssues = issueService.getMembersWithActiveBooks();
-		List<Member> matched = membersWithActiveIssues.stream()
-				.filter(member -> memberIds.contains(member.getMemberID())).toList();
+		List<String> matched = membersWithActiveIssues.stream()
+				.filter(member -> memberIds.contains(member.getMemberID())).map(m -> m.getName()).toList();
 		if (matched.size() > 0) {
-			throw new LibraryException("can't delete, one or more members have issued books");
+			throw new LibraryException("can't delete, these members have issued books: " + matched);
 		}
 
 		Integer[] memberIdArray = memberIds.toArray(new Integer[0]);

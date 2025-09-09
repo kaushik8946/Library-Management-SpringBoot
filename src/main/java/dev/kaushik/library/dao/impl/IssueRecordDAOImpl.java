@@ -1,10 +1,8 @@
 package dev.kaushik.library.dao.impl;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -25,17 +23,18 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
-    private final RowMapper<IssueRecord> issueRecordRowMapper = (rs, rowNum) ->
-        IssueRecord.builder()
-            .issueId(rs.getInt("issueId"))
-            .bookId(rs.getInt("bookId"))
-            .memberId(rs.getInt("memberId"))
-            .status(IssueStatus.fromCode(rs.getString("status")))
-            .issueDate(rs.getTimestamp("issueDate").toLocalDateTime())
-            .issuedBy(rs.getString("issued_by"))
-            .returnDate(rs.getTimestamp("returnDate") != null ? rs.getTimestamp("returnDate").toLocalDateTime() : null)
-            .returnedBy(rs.getString("returned_by"))
-            .build();
+    private final RowMapper<IssueRecord> issueRecordRowMapper = (rs, rowNum) -> {
+        IssueRecord issueRecord = new IssueRecord();
+        issueRecord.setIssueId(rs.getInt("issueId"));
+        issueRecord.setBookId(rs.getInt("bookId"));
+        issueRecord.setMemberId(rs.getInt("memberId"));
+        issueRecord.setStatus(IssueStatus.fromCode(rs.getString("status")));
+        issueRecord.setIssueDate(rs.getTimestamp("issueDate").toLocalDateTime());
+        issueRecord.setIssuedBy(rs.getString("issued_by"));
+        issueRecord.setReturnDate(rs.getTimestamp("returnDate") != null ? rs.getTimestamp("returnDate").toLocalDateTime() : null);
+        issueRecord.setReturnedBy(rs.getString("returned_by"));
+        return issueRecord;
+    };
 
 	@Override
 	public int addIssueRecord(IssueRecord issueRecord) {
@@ -57,13 +56,7 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
 
 	@Override
 	public boolean markAsReturned(IssueRecord issueRecord) {
-	    Optional<IssueRecord> optionalOldRecord = getActiveIssueRecordByBookId(issueRecord.getBookId());
-
-	    if (optionalOldRecord.isEmpty()) {
-	        return false;
-	    }
-	    
-	    IssueRecord oldRecord = optionalOldRecord.get();
+		IssueRecord oldRecord = getActiveIssueRecordByBookId(issueRecord.getBookId());
 	    
 	    String sql = "UPDATE issue_records SET status = :status, returnDate = :returnDate, returned_by = :returnedBy " +
 	                 "WHERE issueId = :issueId";
@@ -124,18 +117,14 @@ public class IssueRecordDAOImpl implements IssueRecordDAO {
 	}
 
 	@Override
-	public Optional<IssueRecord> getActiveIssueRecordByBookId(int bookId)  {
+	public IssueRecord getActiveIssueRecordByBookId(int bookId)  {
 		String sql = "SELECT * FROM issue_records WHERE bookId = :bookId AND status = :status";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("bookId", bookId)
             .addValue("status", IssueStatus.ISSUED.getCode());
 
-        try {
-            return Optional.ofNullable(namedParameterJdbcTemplate.queryForObject(sql, params, issueRecordRowMapper));
-        } catch (EmptyResultDataAccessException e) {
-            return Optional.empty();
-        }
+        return namedParameterJdbcTemplate.query(sql, params, issueRecordRowMapper).get(0);
 	}
 
 }

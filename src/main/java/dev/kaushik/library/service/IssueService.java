@@ -4,14 +4,12 @@ import java.util.List;
 
 import dev.kaushik.library.model.IssueRecord;
 import dev.kaushik.library.model.Member;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
 public interface IssueService {
 
-	Integer issueBook(@Positive int bookId, @Positive int memberId, @NotNull String issuedBy);
+	Integer issueBook(int bookId, int memberId, String issuedBy);
 
-	Integer returnBook(@Positive int bookId, @NotNull String returnedBy);
+	boolean returnBook(int bookId, String returnedBy);
 
 	List<IssueRecord> getAllIssuedRecords();
 
